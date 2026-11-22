@@ -72,8 +72,8 @@ footer{font-size:10px;color:#7386a2;text-align:center;margin-top:18px}
  <section class="panel">
   <div class="panel-head"><h3>Editor foto</h3><span class="step">01 / EDIT</span></div>
   <label class="upload" for="file">
-   <input id="file" type="file" accept="image/*" capture="environment">
-   <div class="upload-icon">＋</div><strong>Pilih foto atau ambil dari kamera</strong><span>JPG · PNG · WEBP · Geser foto untuk mengatur crop</span>
+   <input id="file" type="file" accept="image/*">
+   <div class="upload-icon">▧</div><strong>Pilih foto dari file / galeri HP</strong><span>JPG · PNG · WEBP · Pilih gambar yang sudah tersimpan di perangkat</span>
   </label>
   <div class="stage" id="stage">
    <img id="source" alt="">
@@ -125,6 +125,7 @@ footer{font-size:10px;color:#7386a2;text-align:center;margin-top:18px}
 <footer>THERMAL STUDIO · Dirancang untuk kertas thermal 58 mm</footer>
 </div>
 
+
 <script>
 const $=id=>document.getElementById(id);
 const file=$('file'),stage=$('stage'),source=$('source'),result=$('result');
@@ -145,14 +146,20 @@ function draw(){
  source.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) rotate(${angle}deg)`;
  $('stageEmpty').style.display='none';
 }
-file.addEventListener('change',()=>{
- const f=file.files&&file.files[0];if(!f)return;
+function loadImageFile(f){
+ if(!f)return;
  if(!f.type.startsWith('image/')){alert('Pilih file gambar yang valid.');return;}
  if(objectUrl)URL.revokeObjectURL(objectUrl);
  objectUrl=URL.createObjectURL(f);
- source.onload=()=>{loaded=true;zoom=1;angle=0;dx=0;dy=0;$('zoom').value=1;draw();finalCanvas=null;$('directPrint').disabled=true;$('systemPrint').disabled=true;};
+ source.onload=()=>{
+  loaded=true;zoom=1;angle=0;dx=0;dy=0;$('zoom').value=1;
+  $('zoomOut').textContent='1.00×';draw();finalCanvas=null;
+  $('directPrint').disabled=true;$('systemPrint').disabled=true;
+ };
+ source.onerror=()=>alert('Foto tidak dapat dibuka. Coba pilih foto JPG atau PNG.');
  source.src=objectUrl;
-});
+}
+file.addEventListener('change',()=>loadImageFile(file.files&&file.files[0]));
 $('zoom').addEventListener('input',e=>{zoom=+e.target.value;$('zoomOut').textContent=zoom.toFixed(2)+'×';draw();});
 $('brightness').addEventListener('input',e=>$('brightOut').textContent=e.target.value);
 $('contrast').addEventListener('input',e=>$('contrastOut').textContent=e.target.value);
