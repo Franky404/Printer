@@ -24,7 +24,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:14px;ma
 .upload-icon{width:42px;height:42px;margin:auto;border-radius:13px;background:#1b3552;display:grid;place-items:center;font-size:20px;color:var(--cyan)}
 .stage{height:320px;background:repeating-conic-gradient(#1d2a3e 0% 25%,#172337 0% 50%) 50%/22px 22px;border:1px solid #2c3b53;border-radius:14px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;touch-action:none;margin-top:13px}
 #source{position:absolute;max-width:none;max-height:none;display:none;user-select:none;-webkit-user-drag:none;transform-origin:center}
-.crop-frame{position:absolute;top:12px;bottom:12px;left:16%;right:16%;border:2px solid #f8fbff;box-shadow:0 0 0 999px #06101bbd;pointer-events:none;border-radius:2px}
+.crop-frame{position:absolute;top:8px;bottom:8px;left:7%;right:7%;border:2px solid #f8fbff;box-shadow:0 0 0 999px #06101bbd;pointer-events:none;border-radius:2px}
 .stage-empty{color:#91a3bd;text-align:center;font-size:12px;pointer-events:none}.stage-empty b{display:block;font-size:30px;margin-bottom:8px;color:#607895}
 .stage-tip{font-size:11px;color:var(--muted);margin:8px 2px 0}
 .controls{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
@@ -38,7 +38,7 @@ select,input[type=text]{width:100%;border:1px solid #344862;background:#0e192a;c
 .preview-area{background:#e8edf4;border-radius:14px;padding:18px 10px;min-height:210px;display:flex;align-items:flex-start;justify-content:center;overflow:auto}
 .paper{width:58mm;min-height:42mm;background:#fff;color:#111;padding:3mm 4mm;text-align:center;box-shadow:0 5px 20px #0002;font-family:Arial,sans-serif}
 .paper-title{font-size:11px;font-weight:800;letter-spacing:.3px;overflow-wrap:anywhere}.paper-rule{border-top:1px dashed #222;margin:7px 0}
-#result{display:none;width:50mm;height:auto;margin:6px auto}
+#result{display:none;width:50mm;max-width:100%;height:auto;margin:6px auto;image-rendering:auto}
 .paper-note{font-size:9px;overflow-wrap:anywhere}
 .preview-empty{color:#555;font:10px Arial;padding:22px 0}
 .print-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
@@ -64,7 +64,7 @@ footer{font-size:10px;color:#7386a2;text-align:center;margin-top:18px}
 <div class="app">
 <header>
  <div class="brand"><div class="logo">T</div><div><h1>THERMAL STUDIO</h1><p>PHOTO EDITOR · RECEIPT PRINT</p></div></div>
- <div class="status"><i class="dot" id="statusDot"></i><span id="headerStatus">Printer belum terhubung</span></div>
+ <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end"><span class="status" style="color:var(--cyan)">WEB v8.0</span><div class="status"><i class="dot" id="statusDot"></i><span id="headerStatus">Printer belum terhubung</span></div></div>
 </header>
 <section class="hero"><div class="eyebrow">58mm print workspace</div><h2>Edit foto. Atur hasil. Cetak.</h2><p>Studio foto mini untuk struk thermal. Potong foto saja. Ukuran, ketajaman kontras, dan mode hitam-putih disesuaikan otomatis agar foto lebih jelas dan besar pada struk.</p></section>
 
@@ -82,7 +82,7 @@ footer{font-size:10px;color:#7386a2;text-align:center;margin-top:18px}
   </div>
   <div class="stage-tip">Atur bingkai crop portrait mengelilingi objek. Geser dan zoom foto; hasil lainnya disesuaikan otomatis.</div>
   <div class="controls" style="grid-template-columns:1fr">
-   <div class="control"><label for="zoom">Atur besar foto <output id="zoomOut">1.00×</output></label><input id="zoom" type="range" min="0.5" max="5" step=".01" value="1"></div>
+   <div class="control"><label for="zoom">Atur besar foto <output id="zoomOut">1.00×</output></label><input id="zoom" type="range" min="0.5" max="8" step=".01" value="2"></div>
   </div>
   <div class="tools">
    <button class="btn" id="rotate">↻ Putar 90°</button>
@@ -118,20 +118,20 @@ footer{font-size:10px;color:#7386a2;text-align:center;margin-top:18px}
   <div class="notice"><b>Info kompatibilitas:</b> Cetak Bluetooth langsung memerlukan Chrome Android, website HTTPS, dan printer Bluetooth Low Energy (BLE) dengan layanan tulis yang kompatibel. Banyak printer thermal memakai Bluetooth Classic/SPP dan tidak dapat diakses langsung oleh browser. Untuk perangkat tersebut gunakan Dialog cetak atau aplikasi/bridge printer.</div>
  </section>
 </div>
-<footer>THERMAL STUDIO · Dirancang untuk kertas thermal 58 mm</footer>
+<footer>THERMAL STUDIO · WEB VERSION 8.0 · OPTIMIZED FOR 58mm THERMAL PRINT</footer>
 </div>
 
 
 <script>
 const $=id=>document.getElementById(id);
 const file=$('file'),stage=$('stage'),source=$('source'),result=$('result');
-let objectUrl=null,loaded=false,zoom=1,angle=0,dx=0,dy=0,baseScale=1,drag=false,p0=null,d0=null;
+let objectUrl=null,loaded=false,zoom=2,angle=0,dx=0,dy=0,baseScale=1,drag=false,p0=null,d0=null;
 let finalCanvas=null,bleDevice=null,bleServer=null,writeChar=null;
 
 function stageInfo(){
  const r=stage.getBoundingClientRect(),rot=Math.abs(angle)%180===90;
  const iw=rot?source.naturalHeight:source.naturalWidth,ih=rot?source.naturalWidth:source.naturalHeight;
- const cw=r.width*.68,ch=r.height-24;
+ const cw=r.width*.86,ch=r.height-16;
  baseScale=Math.max(cw/iw,ch/ih);
  return {r,cw,ch};
 }
@@ -151,8 +151,8 @@ function loadImageFile(f){
  objectUrl=URL.createObjectURL(f);
  source.onload=()=>{
   source.style.display='block';
-  loaded=true;zoom=1;angle=0;dx=0;dy=0;$('zoom').value=1;
-  $('zoomOut').textContent='1.00×';draw();finalCanvas=null;
+  loaded=true;zoom=2;angle=0;dx=0;dy=0;$('zoom').value=2;
+  $('zoomOut').textContent='2.00×';draw();finalCanvas=null;
   $('directPrint').disabled=true;$('systemPrint').disabled=true;
  };
  source.onerror=()=>alert('Foto tidak dapat dibuka. Coba pilih foto JPG atau PNG.');
@@ -162,7 +162,7 @@ file.addEventListener('change',()=>loadImageFile(file.files&&file.files[0]));
 $('zoom').addEventListener('input',e=>{zoom=+e.target.value;$('zoomOut').textContent=zoom.toFixed(2)+'×';draw();});
 
 $('rotate').onclick=()=>{if(!loaded)return;angle=(angle+90)%360;dx=0;dy=0;draw();};
-$('resetCrop').onclick=()=>{if(!loaded)return;zoom=1;angle=0;dx=0;dy=0;$('zoom').value=1;$('zoomOut').textContent='1.00×';draw();};
+$('resetCrop').onclick=()=>{if(!loaded)return;zoom=2;angle=0;dx=0;dy=0;$('zoom').value=2;$('zoomOut').textContent='2.00×';draw();};
 function local(e){const r=stage.getBoundingClientRect();return{x:e.clientX-r.left-r.width/2,y:e.clientY-r.top-r.height/2};}
 stage.addEventListener('pointerdown',e=>{if(!loaded)return;drag=true;stage.setPointerCapture(e.pointerId);p0=local(e);d0={x:dx,y:dy};});
 stage.addEventListener('pointermove',e=>{if(!drag)return;const p=local(e);dx=d0.x+p.x-p0.x;dy=d0.y+p.y-p0.y;draw();});
@@ -177,18 +177,27 @@ function renderCrop(){
  ctx.save();ctx.translate(outW/2+dx*f,outH/2+dy*f);ctx.rotate(angle*Math.PI/180);
  ctx.scale(s*f,s*f);ctx.drawImage(source,-source.naturalWidth/2,-source.naturalHeight/2,source.naturalWidth,source.naturalHeight);ctx.restore();
  const im=ctx.getImageData(0,0,outW,outH),d=im.data;
- // Automatic grayscale and contrast normalization for thermal-paper output.
+ // Automatic grayscale, local sharpening, and contrast optimization for thermal paper.
+ const gray=new Float32Array(outW*outH);
  let min=255,max=0;
- const gray=new Uint8Array(outW*outH);
  for(let p=0,i=0;i<d.length;i+=4,p++){
-   const g=Math.round(.299*d[i]+.587*d[i+1]+.114*d[i+2]);
+   const g=.299*d[i]+.587*d[i+1]+.114*d[i+2];
    gray[p]=g;if(g<min)min=g;if(g>max)max=g;
  }
- const span=Math.max(1,max-min);
+ const span=Math.max(1,max-min),enhanced=new Uint8Array(outW*outH);
+ for(let y=0;y<outH;y++)for(let x=0;x<outW;x++){
+   const p=y*outW+x;
+   let sum=0,count=0;
+   for(let yy=Math.max(0,y-1);yy<=Math.min(outH-1,y+1);yy++)
+    for(let xx=Math.max(0,x-1);xx<=Math.min(outW-1,x+1);xx++){sum+=gray[yy*outW+xx];count++;}
+   const blur=sum/count;
+   const sharp=gray[p]+1.15*(gray[p]-blur);
+   const normalized=Math.max(0,Math.min(255,Math.round((sharp-min)*255/span)));
+   // Preserve gray transitions for text and edges; avoid crushing every midtone.
+   enhanced[p]=normalized;
+ }
  for(let p=0,i=0;i<d.length;i+=4,p++){
-   let g=Math.max(0,Math.min(255,Math.round((gray[p]-min)*255/span)));
-   // Soft threshold: preserve detail while increasing contrast for thermal printers.
-   g=g<118?0:(g>220?255:Math.round((g-118)*2.5));
+   const g=enhanced[p];
    d[i]=d[i+1]=d[i+2]=g;d[i+3]=255;
  }
  ctx.putImageData(im,0,0);
