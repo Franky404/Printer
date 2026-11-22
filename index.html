@@ -1,1 +1,136 @@
 
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Foto Struk 58mm</title>
+<style>
+:root{font-family:Arial,sans-serif;color:#172033;background:#f3f5f8}
+*{box-sizing:border-box}
+body{margin:0;padding:18px}
+.app{max-width:760px;margin:auto}
+h1{font-size:23px;margin:4px 0 7px}
+.sub{color:#667085;font-size:14px;line-height:1.5;margin:0 0 18px}
+.panel{background:#fff;border:1px solid #e4e7ec;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px #1018280a}
+label{display:block;font-size:13px;font-weight:700;margin:12px 0 6px}
+input,select,button{font:inherit}
+input[type=file],input[type=text],select{width:100%;padding:11px;border:1px solid #d0d5dd;border-radius:9px;background:#fff}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+button{border:0;border-radius:10px;padding:12px 15px;font-weight:700;cursor:pointer}
+.primary{background:#155eef;color:white;width:100%;margin-top:14px}
+.secondary{background:#eef2f6;color:#344054;width:100%;margin-top:9px}
+.hint{font-size:12px;color:#667085;line-height:1.5;margin-top:8px}
+.preview-wrap{background:#e9edf3;padding:18px;border-radius:12px;overflow:auto}
+.receipt{width:58mm;min-height:40mm;margin:auto;background:#fff;color:#000;padding:3mm 4mm;text-align:center;box-shadow:0 2px 12px #0002;font-family:Arial,sans-serif}
+.receipt-title{font-weight:700;font-size:12px;margin:0 0 8px;overflow-wrap:anywhere}
+.receipt-note{font-size:10px;margin:5px 0;overflow-wrap:anywhere}
+.receipt img{display:none;width:100%;height:auto;max-height:none;object-fit:contain;margin:6px auto}
+.line{border-top:1px dashed #000;margin:7px 0}
+.empty{font-size:10px;color:#555;padding:22px 0}
+@media(max-width:480px){body{padding:12px}.row{grid-template-columns:1fr}}
+@media print{
+ @page{size:58mm auto;margin:0}
+ html,body{width:58mm!important;margin:0!important;padding:0!important;background:#fff!important}
+ body *{visibility:hidden!important}
+ #receipt,#receipt *{visibility:visible!important}
+ #receipt{position:absolute;left:0;top:0;width:58mm!important;margin:0!important;padding:3mm 4mm!important;box-shadow:none!important}
+ .receipt img{display:block!important;width:100%!important;height:auto!important;max-height:none!important;object-fit:contain!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Foto Struk Thermal 58mm</h1>
+  <p class="sub">Masukkan foto, atur lebar dan lihat pratinjau sebelum mencetak. Foto akan diperkecil secara proporsional agar tidak terpotong.</p>
+
+  <section class="panel">
+    <label for="title">Judul struk (opsional)</label>
+    <input id="title" type="text" value="BUKTI TRANSAKSI" maxlength="50">
+    <label for="photo">Pilih foto</label>
+    <input id="photo" type="file" accept="image/*">
+    <div class="row">
+      <div>
+        <label for="width">Lebar foto</label>
+        <select id="width">
+          <option value="46">46 mm</option>
+          <option value="48" selected>48 mm</option>
+          <option value="50">50 mm</option>
+        </select>
+      </div>
+      <div>
+        <label for="align">Posisi foto</label>
+        <select id="align">
+          <option value="center" selected>Tengah</option>
+          <option value="left">Kiri</option>
+          <option value="right">Kanan</option>
+        </select>
+      </div>
+    </div>
+    <label for="note">Keterangan (opsional)</label>
+    <input id="note" type="text" placeholder="Contoh: Foto barang / kondisi barang">
+    <button class="primary" id="printBtn">Cetak struk</button>
+    <button class="secondary" id="resetBtn">Hapus foto dan ulangi</button>
+    <p class="hint">Tips: hasil cetak mengikuti pengaturan printer. Pilih kertas 58 mm, margin 0 atau minimum, dan nonaktifkan header/footer jika tersedia.</p>
+  </section>
+
+  <section class="panel">
+    <strong>Pratinjau cetak</strong>
+    <p class="hint">Area putih menunjukkan lebar kertas 58 mm.</p>
+    <div class="preview-wrap">
+      <div class="receipt" id="receipt">
+        <div class="receipt-title" id="previewTitle">BUKTI TRANSAKSI</div>
+        <div class="line"></div>
+        <div class="empty" id="empty">Foto belum dipilih</div>
+        <img id="previewImage" alt="Pratinjau foto untuk struk">
+        <div class="receipt-note" id="previewNote"></div>
+        <div class="line"></div>
+      </div>
+    </div>
+  </section>
+</div>
+<script>
+const photo=document.getElementById('photo');
+const img=document.getElementById('previewImage');
+const empty=document.getElementById('empty');
+const title=document.getElementById('title');
+const note=document.getElementById('note');
+const width=document.getElementById('width');
+const align=document.getElementById('align');
+let objectUrl=null;
+
+photo.addEventListener('change',()=>{
+  const file=photo.files&&photo.files[0];
+  if(!file)return;
+  if(!file.type.startsWith('image/')){alert('Pilih file gambar.');return;}
+  if(objectUrl)URL.revokeObjectURL(objectUrl);
+  objectUrl=URL.createObjectURL(file);
+  img.src=objectUrl;
+  img.style.display='block';
+  empty.style.display='none';
+});
+function update(){
+  document.getElementById('previewTitle').textContent=title.value.trim()||' ';
+  document.getElementById('previewNote').textContent=note.value.trim();
+  img.style.width=width.value+'mm';
+  img.style.marginLeft=align.value==='left'?'0':align.value==='right'?'auto':'auto';
+  img.style.marginRight=align.value==='right'?'0':align.value==='left'?'auto':'auto';
+}
+[title,note,width,align].forEach(el=>el.addEventListener('input',update));
+document.getElementById('printBtn').addEventListener('click',()=>{
+  if(!img.src){alert('Pilih foto terlebih dahulu.');return;}
+  update();
+  if(img.complete)window.print();
+  else img.onload=()=>window.print();
+});
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  photo.value='';
+  if(objectUrl)URL.revokeObjectURL(objectUrl);
+  objectUrl=null;img.removeAttribute('src');img.style.display='none';
+  empty.style.display='block';title.value='BUKTI TRANSAKSI';note.value='';
+  width.value='48';align.value='center';update();
+});
+update();
+</script>
+</body>
+</html>
