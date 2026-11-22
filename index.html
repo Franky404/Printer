@@ -140,6 +140,7 @@ function stageInfo(){
 }
 function draw(){
  if(!loaded)return;
+ source.style.display='block';
  const {r}=stageInfo(),s=baseScale*zoom;
  source.style.width=source.naturalWidth*s+'px';source.style.height=source.naturalHeight*s+'px';
  source.style.left='50%';source.style.top='50%';
@@ -152,6 +153,7 @@ function loadImageFile(f){
  if(objectUrl)URL.revokeObjectURL(objectUrl);
  objectUrl=URL.createObjectURL(f);
  source.onload=()=>{
+  source.style.display='block';
   loaded=true;zoom=1;angle=0;dx=0;dy=0;$('zoom').value=1;
   $('zoomOut').textContent='1.00×';draw();finalCanvas=null;
   $('directPrint').disabled=true;$('systemPrint').disabled=true;
