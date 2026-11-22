@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="id">
 <head>
@@ -28,6 +27,15 @@ button{border:0;border-radius:10px;padding:12px 15px;font-weight:700;cursor:poin
 .receipt img{display:none;width:100%;height:auto;max-height:none;object-fit:contain;margin:6px auto}
 .line{border-top:1px dashed #000;margin:7px 0}
 .empty{font-size:10px;color:#555;padding:22px 0}
+
+.crop-editor{margin-top:12px}
+.crop-stage{height:280px;position:relative;overflow:hidden;background:#202733;border-radius:10px;touch-action:none;display:flex;align-items:center;justify-content:center}
+#cropImage{position:absolute;max-width:none;max-height:none;user-select:none;-webkit-user-drag:none;display:none;transform-origin:center}
+.crop-window{position:absolute;inset:12px;border:2px solid #fff;box-shadow:0 0 0 999px #0008;pointer-events:none}
+.crop-help{font-size:11px;color:#667085;margin-top:7px}
+.crop-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.crop-controls button{width:100%;margin-top:8px}
+
 @media(max-width:480px){body{padding:12px}.row{grid-template-columns:1fr}}
 @media print{
  @page{size:58mm auto;margin:0}
@@ -49,6 +57,21 @@ button{border:0;border-radius:10px;padding:12px 15px;font-weight:700;cursor:poin
     <input id="title" type="text" value="BUKTI TRANSAKSI" maxlength="50">
     <label for="photo">Pilih foto</label>
     <input id="photo" type="file" accept="image/*">
+    <div class="crop-editor">
+      <label>Atur potongan foto</label>
+      <div class="crop-stage" id="cropStage">
+        <img id="cropImage" alt="Foto untuk dipotong">
+        <div class="crop-window"></div>
+      </div>
+      <div class="crop-help">Geser foto di dalam bingkai. Gunakan zoom untuk memperbesar atau memperkecil bagian foto yang akan dicetak.</div>
+      <label for="cropZoom">Zoom foto</label>
+      <input id="cropZoom" type="range" min="0.5" max="3" step="0.01" value="1">
+      <div class="crop-controls">
+        <button type="button" class="secondary" id="rotatePhoto">Putar 90°</button>
+        <button type="button" class="secondary" id="resetCrop">Atur ulang potongan</button>
+      </div>
+      <button type="button" class="secondary" id="applyCrop">Terapkan potongan foto</button>
+    </div>
     <div class="row">
       <div>
         <label for="width">Lebar foto</label>
@@ -69,9 +92,9 @@ button{border:0;border-radius:10px;padding:12px 15px;font-weight:700;cursor:poin
     </div>
     <label for="note">Keterangan (opsional)</label>
     <input id="note" type="text" placeholder="Contoh: Foto barang / kondisi barang">
-    <button class="primary" id="printBtn">Cetak struk</button>
+    <button class="primary" id="printBtn">PRINT STRUK</button>
     <button class="secondary" id="resetBtn">Hapus foto dan ulangi</button>
-    <p class="hint">Tips: hasil cetak mengikuti pengaturan printer. Pilih kertas 58 mm, margin 0 atau minimum, dan nonaktifkan header/footer jika tersedia.</p>
+    <p class="hint">PRINT menjalankan proses cetak dari website. Pilih printer thermal 58 mm pada dialog Android/Chrome. Cetak Bluetooth tanpa dialog hanya bisa dibuat jika model printer mendukung protokol yang kompatibel.</p>
   </section>
 
   <section class="panel">
@@ -97,28 +120,107 @@ const title=document.getElementById('title');
 const note=document.getElementById('note');
 const width=document.getElementById('width');
 const align=document.getElementById('align');
-let objectUrl=null;
+const cropStage=document.getElementById('cropStage');
+const cropImage=document.getElementById('cropImage');
+const cropZoom=document.getElementById('cropZoom');
+let objectUrl=null, loaded=false, zoom=1, angle=0, offsetX=0, offsetY=0;
+let baseScale=1, dragging=false, pointerStart=null, offsetStart=null;
+let croppedData=null;
 
+function stageMetrics(){
+  const r=cropStage.getBoundingClientRect();
+  const rotated=Math.abs(angle)%180===90;
+  const iw=rotated?cropImage.naturalHeight:cropImage.naturalWidth;
+  const ih=rotated?cropImage.naturalWidth:cropImage.naturalHeight;
+  const cw=r.width-24, ch=r.height-24;
+  baseScale=Math.max(cw/iw,ch/ih);
+  return {r,cw,ch};
+}
+function drawCrop(){
+  if(!loaded)return;
+  const {r}=stageMetrics();
+  const s=baseScale*zoom;
+  cropImage.style.width=(cropImage.naturalWidth*s)+'px';
+  cropImage.style.height=(cropImage.naturalHeight*s)+'px';
+  cropImage.style.left='50%';
+  cropImage.style.top='50%';
+  cropImage.style.transform=`translate(calc(-50% + ${offsetX}px),calc(-50% + ${offsetY}px)) rotate(${angle}deg)`;
+}
 photo.addEventListener('change',()=>{
   const file=photo.files&&photo.files[0];
   if(!file)return;
   if(!file.type.startsWith('image/')){alert('Pilih file gambar.');return;}
   if(objectUrl)URL.revokeObjectURL(objectUrl);
   objectUrl=URL.createObjectURL(file);
-  img.src=objectUrl;
-  img.style.display='block';
-  empty.style.display='none';
+  cropImage.onload=()=>{
+    loaded=true;zoom=1;angle=0;offsetX=0;offsetY=0;cropZoom.value=1;
+    cropImage.style.display='block';drawCrop();croppedData=null;
+    img.style.display='none';empty.style.display='block';
+  };
+  cropImage.src=objectUrl;
 });
+cropZoom.addEventListener('input',()=>{zoom=Number(cropZoom.value);drawCrop();});
+document.getElementById('rotatePhoto').addEventListener('click',()=>{
+  if(!loaded){alert('Pilih foto terlebih dahulu.');return;}
+  angle=(angle+90)%360;offsetX=0;offsetY=0;drawCrop();
+});
+document.getElementById('resetCrop').addEventListener('click',()=>{
+  if(!loaded)return;
+  zoom=1;angle=0;offsetX=0;offsetY=0;cropZoom.value=1;drawCrop();
+});
+function localPoint(e){
+  const r=cropStage.getBoundingClientRect();
+  return {x:e.clientX-r.left-r.width/2,y:e.clientY-r.top-r.height/2};
+}
+cropStage.addEventListener('pointerdown',e=>{
+  if(!loaded)return;
+  dragging=true;cropStage.setPointerCapture(e.pointerId);
+  pointerStart=localPoint(e);offsetStart={x:offsetX,y:offsetY};
+});
+cropStage.addEventListener('pointermove',e=>{
+  if(!dragging)return;
+  const p=localPoint(e);
+  offsetX=offsetStart.x+p.x-pointerStart.x;
+  offsetY=offsetStart.y+p.y-pointerStart.y;
+  drawCrop();
+});
+['pointerup','pointercancel'].forEach(ev=>cropStage.addEventListener(ev,()=>dragging=false));
+
+function applyCrop(){
+  if(!loaded){alert('Pilih foto terlebih dahulu.');return;}
+  const {cw,ch}=stageMetrics();
+  const outW=576, outH=Math.max(1,Math.round(outW*ch/cw));
+  const canvas=document.createElement('canvas');
+  canvas.width=outW;canvas.height=outH;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,outW,outH);
+  const factor=outW/cw;
+  const s=baseScale*zoom;
+  ctx.save();
+  ctx.translate(outW/2+offsetX*factor,outH/2+offsetY*factor);
+  ctx.rotate(angle*Math.PI/180);
+  ctx.scale(s*factor,s*factor);
+  ctx.drawImage(cropImage,-cropImage.naturalWidth/2,-cropImage.naturalHeight/2,
+                cropImage.naturalWidth,cropImage.naturalHeight);
+  ctx.restore();
+  croppedData=canvas.toDataURL('image/png');
+  img.onload=()=>{
+    img.style.display='block';empty.style.display='none';update();
+  };
+  img.src=croppedData;
+}
+document.getElementById('applyCrop').addEventListener('click',applyCrop);
+
 function update(){
   document.getElementById('previewTitle').textContent=title.value.trim()||' ';
   document.getElementById('previewNote').textContent=note.value.trim();
   img.style.width=width.value+'mm';
-  img.style.marginLeft=align.value==='left'?'0':align.value==='right'?'auto':'auto';
-  img.style.marginRight=align.value==='right'?'0':align.value==='left'?'auto':'auto';
+  img.style.marginLeft=align.value==='left'?'0':'auto';
+  img.style.marginRight=align.value==='right'?'0':'auto';
 }
 [title,note,width,align].forEach(el=>el.addEventListener('input',update));
 document.getElementById('printBtn').addEventListener('click',()=>{
-  if(!img.src){alert('Pilih foto terlebih dahulu.');return;}
+  if(!croppedData){alert('Pilih foto, atur potongan, lalu tekan Terapkan potongan foto.');return;}
   update();
   if(img.complete)window.print();
   else img.onload=()=>window.print();
@@ -126,11 +228,17 @@ document.getElementById('printBtn').addEventListener('click',()=>{
 document.getElementById('resetBtn').addEventListener('click',()=>{
   photo.value='';
   if(objectUrl)URL.revokeObjectURL(objectUrl);
-  objectUrl=null;img.removeAttribute('src');img.style.display='none';
-  empty.style.display='block';title.value='BUKTI TRANSAKSI';note.value='';
-  width.value='48';align.value='center';update();
+  objectUrl=null;loaded=false;croppedData=null;
+  cropImage.removeAttribute('src');cropImage.style.display='none';
+  img.removeAttribute('src');img.style.display='none';
+  empty.style.display='block';
+  title.value='BUKTI TRANSAKSI';note.value='';
+  width.value='48';align.value='center';
+  zoom=1;angle=0;offsetX=0;offsetY=0;cropZoom.value=1;
+  update();
 });
 update();
+window.addEventListener('resize',drawCrop);
 </script>
 </body>
 </html>
